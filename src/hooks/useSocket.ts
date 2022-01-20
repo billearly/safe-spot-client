@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { io } from "socket.io-client";
-import { GameBoard, Tile, TilePosition } from "../types";
+import { ClientInfo, Game, GameBoard, TilePosition } from "../types";
 
 const URL = "http://localhost:3001";
 const socket = io(URL, { autoConnect: false });
@@ -10,28 +10,35 @@ type GameCreatedPayload = {
 };
 
 type GameStartedPayload = {
-  board: GameBoard;
+  game: Game;
 };
 
 type MoveMadePayload = {
-  board: GameBoard;
+  game: Game;
 };
 
 type SocketData = {
   createGame: () => void;
   joinGame: (gameId?: string) => void;
   makeMove: (tile: TilePosition) => void;
-  gameId?: string;
-  board?: GameBoard; // Should this be the entire game?
+  gameId?: string; // This isn't needed because the Game has this property
+  game?: Game;
+  isCurrentTurn: boolean;
 };
 
 // THis should be named something like 'useGame' since the underlying implementation could change
 // I mean I probably won't change this to polling, but who knows
-export const useSocket = (clientId?: string): SocketData => {
+export const useSocket = (clientInfo?: ClientInfo): SocketData => {
   // TODO: gameId is a little confusing because this is only relevant when a game is created by this client
-  // Should I also set this when a game is joined?
   const [gameId, setGameId] = useState<string>();
-  const [board, setBoard] = useState<GameBoard>();
+  const [game, setGame] = useState<Game>();
+
+  const isCurrentTurn = useMemo(() => {
+    console.log(game?.currentTurn, "current turn");
+    console.log(clientInfo?.publicId, "my public id");
+
+    return game?.currentTurn === clientInfo?.publicId;
+  }, [game, clientInfo]);
 
   useEffect(() => {
     socket.connect();
@@ -49,33 +56,34 @@ export const useSocket = (clientId?: string): SocketData => {
     });
 
     socket.on("gameStarted", (payload: GameStartedPayload) => {
-      // console.log(payload.board);
-      setBoard(payload.board);
+      setGame(payload.game);
     });
 
     socket.on("moveMade", (payload: MoveMadePayload) => {
-      // console.log(payload.board);
-      setBoard(payload.board);
+      setGame(payload.game);
     });
   }, []);
 
   const createGame = () => {
     socket.emit("createGame", {
-      creator: clientId,
+      client: clientInfo,
     });
   };
 
   const joinGame = (gameId?: string) => {
     socket.emit("joinGame", {
       gameId,
-      userId: clientId,
+      client: clientInfo,
     });
+
+    // Should this only be set if we get a 'gameJoined' message?
+    setGameId(gameId);
   };
 
   const makeMove = (tilePosition: TilePosition) => {
     socket.emit("makeMove", {
       gameId,
-      userId: clientId,
+      client: clientInfo,
       tile: tilePosition,
     });
   };
@@ -85,6 +93,7 @@ export const useSocket = (clientId?: string): SocketData => {
     joinGame,
     makeMove,
     gameId,
-    board,
+    game,
+    isCurrentTurn,
   };
 };

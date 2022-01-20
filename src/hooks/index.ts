@@ -1,2 +1,2 @@
-export * from "./useClientId";
+export * from "./useClientInfo";
 export * from "./useSocket";

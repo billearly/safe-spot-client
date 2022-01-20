@@ -1,4 +1,4 @@
-import { useClientId, useSocket } from "./hooks";
+import { useClientInfo, useSocket } from "./hooks";
 import { ChangeEvent, useState } from "react";
 import "./App.css";
 import { GameTile } from "./components/GameTile";
@@ -7,8 +7,11 @@ import { GameGrid } from "./components/GameGrid";
 function App() {
   const [gameToJoin, setGameToJoin] = useState<string>("");
 
-  const clientId = useClientId();
-  const { createGame, joinGame, makeMove, gameId, board } = useSocket(clientId);
+  const clientInfo = useClientInfo();
+  const { createGame, joinGame, makeMove, gameId, game, isCurrentTurn } =
+    useSocket(clientInfo);
+
+  const { board } = game || {};
 
   const handleGameToJoinChange = (e: ChangeEvent<HTMLInputElement>) => {
     setGameToJoin(e.target.value);
@@ -18,15 +21,7 @@ function App() {
     joinGame(gameToJoin);
   };
 
-  const simulateClickTile = () => {
-    makeMove({
-      row: 0,
-      column: 0,
-    });
-  };
-
   const handleTileClick = (row: number, column: number) => {
-    // call makeMove
     makeMove({
       row,
       column,
@@ -68,15 +63,20 @@ function App() {
             {renderTiles()}
           </GameGrid>
         )}
-        <button onClick={createGame}>Create Game</button>
-        <p>{gameId}</p>
+        {isCurrentTurn && <p>YOUR TURN</p>}
+        {gameId && <p>Game: {gameId}</p>}
         <br />
 
-        <input value={gameToJoin} onChange={handleGameToJoinChange} />
-        <button onClick={handleJoinGame}>Join Game</button>
+        {!game && (
+          <>
+            <button onClick={createGame}>Create Game</button>
+            <p>{gameId}</p>
+            <br />
 
-        <br />
-        <button onClick={simulateClickTile}>Make Move</button>
+            <input value={gameToJoin} onChange={handleGameToJoinChange} />
+            <button onClick={handleJoinGame}>Join Game</button>
+          </>
+        )}
       </header>
     </div>
   );
