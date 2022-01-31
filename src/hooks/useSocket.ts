@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { io } from "socket.io-client";
-import { ClientInfo, Game, GameBoard, TilePosition } from "../types";
+import { useClientInfo } from ".";
+import {
+  ClientAction,
+  ClientInfo,
+  ConnectedPayload,
+  CreateGamePayload,
+  Game,
+  GameBoard,
+  GameCreatedPayload,
+  GameStartedPayload,
+  JoinGamePayload,
+  MakeMovePayload,
+  MoveMadePayload,
+  ServerAction,
+  ServerPayload,
+  TilePosition,
+} from "../types";
 
-const URL = "http://localhost:3001";
-const socket = io(URL, { autoConnect: false });
-
-type GameCreatedPayload = {
-  gameId: string;
-};
-
-type GameStartedPayload = {
-  game: Game;
-};
-
-type MoveMadePayload = {
-  game: Game;
-};
+const URL = "ws://localhost:3001";
 
 type SocketData = {
   createGame: () => void;
@@ -28,10 +30,13 @@ type SocketData = {
 
 // THis should be named something like 'useGame' since the underlying implementation could change
 // I mean I probably won't change this to polling, but who knows
-export const useSocket = (clientInfo?: ClientInfo): SocketData => {
-  // TODO: gameId is a little confusing because this is only relevant when a game is created by this client
+export const useSocket = (): SocketData => {
+  const [socket] = useState<WebSocket>(new WebSocket(URL)); // Consider making a connection a manual process
   const [gameId, setGameId] = useState<string>();
   const [game, setGame] = useState<Game>();
+
+  const clientInfo = useClientInfo(!!socket);
+  const { setSocketId } = clientInfo;
 
   const isCurrentTurn = useMemo(() => {
     console.log(game?.currentTurn, "current turn");
@@ -41,51 +46,107 @@ export const useSocket = (clientInfo?: ClientInfo): SocketData => {
   }, [game, clientInfo]);
 
   useEffect(() => {
-    socket.connect();
+    if (!socket) {
+      throw new Error("No socket instance");
+    }
 
-    socket.on("connected", (message: String) => {
-      console.log(message);
+    socket.addEventListener("open", () => {
+      console.log("Successfully connected");
     });
 
-    socket.on("gameCreated", (payload: GameCreatedPayload) => {
-      setGameId(payload.gameId);
-    });
+    socket.addEventListener("message", (event) => {
+      const payload: ServerPayload = JSON.parse(event.data);
 
-    socket.on("gameJoined", (payload: string) => {
-      console.log(payload);
-    });
+      switch (payload.action) {
+        case ServerAction.CONNECTED:
+          const connectedPayload = payload as ConnectedPayload;
+          setSocketId(connectedPayload.data.socketId);
+          break;
 
-    socket.on("gameStarted", (payload: GameStartedPayload) => {
-      setGame(payload.game);
-    });
+        case ServerAction.GAME_CREATED:
+          const gameCreatedPayload = payload as GameCreatedPayload;
+          setGameId(gameCreatedPayload.data.gameId);
+          break;
 
-    socket.on("moveMade", (payload: MoveMadePayload) => {
-      setGame(payload.game);
+        case ServerAction.GAME_STARTED:
+          console.log("game started");
+          const gameStartedPayload = payload as GameStartedPayload;
+          setGame(gameStartedPayload.data.game);
+          break;
+
+        case ServerAction.MOVE_MADE:
+          const moveMadePayload = payload as MoveMadePayload;
+          setGame(moveMadePayload.data.game);
+          break;
+
+        default:
+          throw new Error(`${payload.action} is not a valid action`);
+        // TODO: Handle this
+      }
     });
   }, []);
 
   const createGame = () => {
-    socket.emit("createGame", {
-      client: clientInfo,
-    });
+    if (!socket) {
+      throw new Error("No socket instance");
+    }
+
+    if (!clientInfo) {
+      throw new Error("No client info");
+    }
+
+    // Need to send the object shape that API Gateway is expecting
+    const payload: CreateGamePayload = {
+      action: ClientAction.CREATE_GAME,
+      data: {
+        client: clientInfo,
+      },
+    };
+
+    socket.send(JSON.stringify(payload));
   };
 
   const joinGame = (gameId?: string) => {
-    socket.emit("joinGame", {
-      gameId,
-      client: clientInfo,
-    });
+    if (!socket) {
+      throw new Error("No socket instance");
+    }
 
-    // Should this only be set if we get a 'gameJoined' message?
+    if (!clientInfo) {
+      throw new Error("No client info");
+    }
+
+    if (!gameId) {
+      throw new Error("No game id");
+    }
+
+    const payload: JoinGamePayload = {
+      action: ClientAction.JOIN_GAME,
+      data: {
+        gameId,
+        client: clientInfo,
+      },
+    };
+
+    socket.send(JSON.stringify(payload));
+
     setGameId(gameId);
   };
 
   const makeMove = (tilePosition: TilePosition) => {
-    socket.emit("makeMove", {
-      gameId,
-      client: clientInfo,
-      tile: tilePosition,
-    });
+    if (!gameId) {
+      throw new Error("No game id");
+    }
+
+    const payload: MakeMovePayload = {
+      action: ClientAction.MAKE_MOVE,
+      data: {
+        gameId,
+        client: clientInfo,
+        tile: tilePosition,
+      },
+    };
+
+    socket.send(JSON.stringify(payload));
   };
 
   return {

@@ -7,9 +7,8 @@ import { GameGrid } from "./components/GameGrid";
 function App() {
   const [gameToJoin, setGameToJoin] = useState<string>("");
 
-  const clientInfo = useClientInfo();
   const { createGame, joinGame, makeMove, gameId, game, isCurrentTurn } =
-    useSocket(clientInfo);
+    useSocket();
 
   const { board } = game || {};
 
