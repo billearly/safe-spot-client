@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useClientInfo } from ".";
 import {
   ClientAction,
-  ClientInfo,
+  ClientPayload,
   ConnectedPayload,
   CreateGamePayload,
   Game,
-  GameBoard,
   GameCreatedPayload,
   GameStartedPayload,
   JoinGamePayload,
@@ -51,14 +50,18 @@ export const useSocket = (): SocketData => {
     }
 
     socket.addEventListener("open", () => {
-      console.log("Successfully connected");
+      const getSocketInfoPayload: ClientPayload = {
+        action: ClientAction.GET_SOCKET_INFO,
+      };
+
+      socket.send(JSON.stringify(getSocketInfoPayload));
     });
 
     socket.addEventListener("message", (event) => {
       const payload: ServerPayload = JSON.parse(event.data);
 
       switch (payload.action) {
-        case ServerAction.CONNECTED:
+        case ServerAction.GIVE_SOCKET_INFO:
           const connectedPayload = payload as ConnectedPayload;
           setSocketId(connectedPayload.data.socketId);
           break;

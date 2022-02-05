@@ -24,7 +24,7 @@ export type ClientInfo = {
 };
 
 export enum ServerAction {
-  CONNECTED = "connected",
+  GIVE_SOCKET_INFO = "giveSocketInfo",
   GAME_CREATED = "gameCreated",
   GAME_STARTED = "gameStarted",
   MOVE_MADE = "moveMade",
@@ -32,6 +32,7 @@ export enum ServerAction {
 
 export enum ClientAction {
   CREATE_GAME = "createGame",
+  GET_SOCKET_INFO = "getSocketInfo",
   JOIN_GAME = "joinGame",
   MAKE_MOVE = "makeMove",
 }
