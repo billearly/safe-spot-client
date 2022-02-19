@@ -16,8 +16,6 @@ import {
   TilePosition,
 } from "../types";
 
-const URL = "ws://localhost:3001";
-
 type SocketData = {
   createGame: () => void;
   joinGame: (gameId?: string) => void;
@@ -30,7 +28,15 @@ type SocketData = {
 // THis should be named something like 'useGame' since the underlying implementation could change
 // I mean I probably won't change this to polling, but who knows
 export const useSocket = (): SocketData => {
-  const [socket] = useState<WebSocket>(new WebSocket(URL)); // Consider making a connection a manual process
+  if (!process.env.REACT_APP_API_URL) {
+    throw new Error("API URL not set");
+  }
+
+  // Consider making a connection a manual process
+  const [socket] = useState<WebSocket>(
+    new WebSocket(process.env.REACT_APP_API_URL)
+  );
+
   const [gameId, setGameId] = useState<string>();
   const [game, setGame] = useState<Game>();
 

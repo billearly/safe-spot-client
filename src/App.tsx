@@ -1,8 +1,9 @@
-import { useClientInfo, useSocket } from "./hooks";
+import { useSocket } from "./hooks";
 import { ChangeEvent, useState } from "react";
 import "./App.css";
 import { GameTile } from "./components/GameTile";
 import { GameGrid } from "./components/GameGrid";
+import { TurnIndicator } from "./components/TurnIndicator";
 
 function App() {
   const [gameToJoin, setGameToJoin] = useState<string>("");
@@ -58,11 +59,15 @@ function App() {
     <div className="App">
       <header className="App-header">
         {board && (
-          <GameGrid rows={board.length} columns={board[0].length}>
-            {renderTiles()}
-          </GameGrid>
+          <>
+            <GameGrid rows={board.length} columns={board[0].length}>
+              {renderTiles()}
+            </GameGrid>
+
+            <TurnIndicator isCurrentTurn={isCurrentTurn} />
+          </>
         )}
-        {isCurrentTurn && <p>YOUR TURN</p>}
+
         {gameId && <p>Game: {gameId}</p>}
         <br />
 
