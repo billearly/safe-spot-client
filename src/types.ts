@@ -1,3 +1,10 @@
+export enum GameStatus {
+  WAITING_FOR_PLAYER = "WAITING_FOR_PLAYER",
+  IN_PROGRESS = "IN_PROGRESS",
+  WON = "WON",
+  LOST = "LOST",
+}
+
 export type Tile = {
   row: number;
   column: number;
@@ -12,6 +19,7 @@ export type TilePosition = Pick<Tile, "row" | "column">;
 export type Game = {
   id: string;
   board: GameBoard;
+  status: GameStatus;
   currentTurn: string;
 };
 

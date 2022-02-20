@@ -11,7 +11,7 @@ function App() {
   const { createGame, joinGame, makeMove, gameId, game, isCurrentTurn } =
     useSocket();
 
-  const { board } = game || {};
+  const { board, status } = game || {};
 
   const handleGameToJoinChange = (e: ChangeEvent<HTMLInputElement>) => {
     setGameToJoin(e.target.value);
@@ -68,7 +68,10 @@ function App() {
           </>
         )}
 
-        {gameId && <p>Game: {gameId}</p>}
+        <div style={{ display: "flex" }}>
+          {gameId && <p>Game: {gameId}</p>}
+          {status && <p style={{ paddingLeft: "20px" }}>Status: {status}</p>}
+        </div>
         <br />
 
         {!game && (

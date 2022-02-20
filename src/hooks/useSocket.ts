@@ -93,7 +93,7 @@ export const useSocket = (): SocketData => {
         // TODO: Handle this
       }
     });
-  }, [socket, setSocketId]);
+  }, []);
   // ^^^ look into if these dependencies are needed, or if adding them has caused a bug
 
   const createGame = () => {
