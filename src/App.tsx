@@ -1,23 +1,57 @@
 import { useSocket } from "./hooks";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import "./App.css";
 import { GameTile } from "./components/GameTile";
 import { GameGrid } from "./components/GameGrid";
 import { TurnIndicator } from "./components/TurnIndicator";
+import { Status } from "./components/Status";
+import { Spinner } from "./components/Spinner";
 
 function App() {
   const [gameToJoin, setGameToJoin] = useState<string>("");
 
-  const { createGame, joinGame, makeMove, gameId, game, isCurrentTurn } =
-    useSocket();
+  const {
+    createGame,
+    joinGame,
+    makeMove,
+    gameId,
+    game,
+    isCurrentTurn,
+    status: socketStatus,
+  } = useSocket();
 
   const { board, status } = game || {};
+
+  // This could be cleaner if there were explicit components for creating and
+  // joining games. Heck even have explicit pages
+  const [isGameCreator, setIsGameCreator] = useState(false);
+  const [waitingForCreation, setIsWaitingForCreation] = useState(false);
+  const [isJoiningGame, setIsJoiningGame] = useState(false);
+
+  const handleCreateGame = () => {
+    setIsGameCreator(true);
+    setIsWaitingForCreation(true);
+    createGame();
+  };
+
+  useEffect(() => {
+    if (gameId) {
+      setIsWaitingForCreation(false);
+    }
+  }, [gameId]);
+
+  useEffect(() => {
+    if (game) {
+      setIsJoiningGame(false);
+    }
+  }, [game]);
 
   const handleGameToJoinChange = (e: ChangeEvent<HTMLInputElement>) => {
     setGameToJoin(e.target.value);
   };
 
   const handleJoinGame = () => {
+    setIsJoiningGame(true);
     joinGame(gameToJoin);
   };
 
@@ -68,22 +102,48 @@ function App() {
           </>
         )}
 
-        <div style={{ display: "flex" }}>
-          {gameId && <p>Game: {gameId}</p>}
-          {status && <p style={{ paddingLeft: "20px" }}>Status: {status}</p>}
-        </div>
-        <br />
-
         {!game && (
           <>
-            <button onClick={createGame}>Create Game</button>
-            <p>{gameId}</p>
+            <button onClick={handleCreateGame}>Create Game</button>
+
+            {waitingForCreation && (
+              <>
+                <p>Creating game...</p>
+                <Spinner />
+              </>
+            )}
+
+            {gameId && isGameCreator && (
+              <>
+                <p>Send this game ID to your partner: {gameId}</p>
+
+                <p>Waiting for partner to join</p>
+                <Spinner />
+              </>
+            )}
             <br />
 
-            <input value={gameToJoin} onChange={handleGameToJoinChange} />
+            <input
+              value={gameToJoin}
+              onChange={handleGameToJoinChange}
+              placeholder="Enter Game ID to join"
+            />
             <button onClick={handleJoinGame}>Join Game</button>
+
+            {isJoiningGame && (
+              <>
+                <p>Joining game...</p>
+                <Spinner />
+              </>
+            )}
           </>
         )}
+
+        <Status
+          websocketStatus={socketStatus}
+          gameId={gameId}
+          gameStatus={status}
+        />
       </header>
     </div>
   );

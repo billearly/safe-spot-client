@@ -23,7 +23,15 @@ type SocketData = {
   gameId?: string; // This isn't needed because the Game has this property
   game?: Game;
   isCurrentTurn: boolean;
+  status: string;
 };
+
+enum SocketStatus {
+  CONNECTING = 0,
+  OPEN = 1,
+  CLOSING = 2,
+  CLOSED = 3,
+}
 
 // THis should be named something like 'useGame' since the underlying implementation could change
 // I mean I probably won't change this to polling, but who knows
@@ -166,5 +174,6 @@ export const useSocket = (): SocketData => {
     gameId,
     game,
     isCurrentTurn,
+    status: SocketStatus[socket.readyState],
   };
 };
